@@ -1,0 +1,94 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+@demo demo/index.html
+
+to do:
+1. clear <li> each time enter is pressed
+2. hide <ul> until enter is pressed
+3. figure out how to traverse shadowRoot in a more intelligent way than 'that.shadowRoot.childNodes[4]''
+4. pass suggestion properties (including magic key back to component as properties
+5. make <li> item formatting configurable
+6. update the address displayed in the <input> when the geocode is complete
+7. stop using fetch
+
+harder:
+1. hook up debounced key listeners to get suggestions
+
+-->
+
+<dom-module id="esri-geocoder">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <input placeholder='enter an address'></input>
+    <ul id='custom-results'>
+    </ul>
+  </template>
+
+  <script>
+    class MyElement extends Polymer.Element {
+      static get is() { return 'esri-geocoder'; }
+      static get properties() {
+        return {
+          address: {
+            type: String,
+            value: 'null island'
+          },
+          latitude: {
+            type: Number,
+            value: 0
+          },
+          longitude: {
+            type: Number,
+            value: 0
+          }
+        };
+      }
+
+      letsGeocode (e) {
+        var keyCode = e.keyCode || e.which;
+        // Enter pressed
+        if (keyCode == '13'){
+          // seems weird
+          let searchText = e.path[0].value;
+
+          let searchUrl = 'http://geocodeqa.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&outFields=*&singleLine=' + searchText;
+
+          var that = this;
+          fetch(searchUrl)
+            .then(function (response) {
+              return response.json()
+            })
+            .then(function (data) {
+
+              for (var i=0; i<data.candidates.length; i++) {
+                var result = document.createElement("li");
+                result.innerHTML = data.candidates[i].address;
+                // code smell
+                that.shadowRoot.childNodes[4].appendChild(result);
+              }
+            })
+        }
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+        this.addEventListener('keypress', this.letsGeocode);
+      }
+
+      disconnectedCallback() {
+        this.removeEventListener('keypress', this.letsGeocode);
+      }
+
+      ready() {
+        super.ready();
+      }
+    }
+
+    window.customElements.define(MyElement.is, MyElement);
+  </script>
+</dom-module>
